@@ -1,3 +1,5 @@
+// http://howistart.org/posts/go/1
+
 package main
 
 import (
