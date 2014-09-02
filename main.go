@@ -4,12 +4,30 @@ package main
 
 import (
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
 func main() {
+	file, e := ioutil.ReadFile("./parameters.json")
+	if e != nil {
+		log.Printf("File error: %s\n", e)
+		os.Exit(1)
+	}
+	log.Printf("%s\n", string(file))
+
+	ofile, e := os.Open("./parameters.json")
+	params := parameters{}
+	if err := json.NewDecoder(ofile).Decode(&params); err != nil {
+		log.Printf("Json decode error: %s\n", err)
+		os.Exit(1)
+	}
+	log.Println(params.WundergroundApiKey)
+	os.Exit(0)
+
 	http.HandleFunc("/weather/", func(w http.ResponseWriter, r *http.Request) {
 		city := strings.SplitN(r.URL.Path, "/", 3)[2]
 		provider := openWeatherMap{}
@@ -28,6 +46,10 @@ func main() {
 
 func hello(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("hello!"))
+}
+
+type parameters struct {
+	WundergroundApiKey string `json:"wunderground_api_key"`
 }
 
 type weatherData struct {
