@@ -4,7 +4,7 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -12,21 +12,12 @@ import (
 )
 
 func main() {
-	file, e := ioutil.ReadFile("./parameters.json")
+	params, e := loadParametersFile("./parameters.json")
 	if e != nil {
-		log.Printf("File error: %s\n", e)
-		os.Exit(1)
-	}
-	log.Printf("%s\n", string(file))
-
-	ofile, e := os.Open("./parameters.json")
-	params := parameters{}
-	if err := json.NewDecoder(ofile).Decode(&params); err != nil {
-		log.Printf("Json decode error: %s\n", err)
+		log.Printf("Error loading parameters file: %s\n", e)
 		os.Exit(1)
 	}
 	log.Println(params.WundergroundApiKey)
-	os.Exit(0)
 
 	http.HandleFunc("/weather/", func(w http.ResponseWriter, r *http.Request) {
 		city := strings.SplitN(r.URL.Path, "/", 3)[2]
@@ -42,6 +33,24 @@ func main() {
 		json.NewEncoder(w).Encode(data)
 	})
 	http.ListenAndServe(":8080", nil)
+}
+
+func loadParametersFile(path string) (parameters, error) {
+	file, e := os.Open(path)
+	if e != nil {
+		params := parameters{}
+		return params, e
+	}
+	return loadParameters(file)
+}
+
+
+func loadParameters(r io.Reader) (parameters, error) {
+	params := parameters{}
+	if err := json.NewDecoder(r).Decode(&params); err != nil {
+		return params, err
+	}
+	return params, nil
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {
