@@ -11,8 +11,12 @@ import (
 	"strings"
 )
 
+const (
+	parametersFile = "./parameters.json"
+)
+
 func main() {
-	params, e := loadParametersFile("./parameters.json")
+	params, e := loadParametersFile(parametersFile)
 	if e != nil {
 		log.Printf("Error loading parameters file: %s\n", e)
 		os.Exit(1)
