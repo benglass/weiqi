@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -23,22 +24,26 @@ func main() {
 	}
 
 	http.HandleFunc("/weather/", func(w http.ResponseWriter, r *http.Request) {
+		begin := time.Now()
 		city := strings.SplitN(r.URL.Path, "/", 3)[2]
+
 		provider := multiWeatherProvider{
 			openWeatherMap{},
 			weatherUnderground{apiKey: params.WundergroundApiKey},
 		}
-		// provider := openWeatherMap{}
-		// provider := weatherUnderground{params.WundergroundApiKey}
 
-		data, err := provider.temperature(city)
+		temp, err := provider.temperature(city)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		json.NewEncoder(w).Encode(data)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"city": city,
+			"temp": temp,
+			"took": time.Since(begin).String(),
+		})
 	})
 	http.ListenAndServe(":8080", nil)
 }
