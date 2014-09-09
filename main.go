@@ -24,8 +24,12 @@ func main() {
 
 	http.HandleFunc("/weather/", func(w http.ResponseWriter, r *http.Request) {
 		city := strings.SplitN(r.URL.Path, "/", 3)[2]
+		provider := multiWeatherProvider{
+			openWeatherMap{},
+			weatherUnderground{apiKey: params.WundergroundApiKey},
+		}
 		// provider := openWeatherMap{}
-		provider := weatherUnderground{params.WundergroundApiKey}
+		// provider := weatherUnderground{params.WundergroundApiKey}
 
 		data, err := provider.temperature(city)
 		if err != nil {
@@ -106,7 +110,6 @@ type weatherUnderground struct{
 }
 
 func (w weatherUnderground) temperature(city string) (float64, error) {
-	log.Printf(w.apiKey)
     resp, err := http.Get("http://api.wunderground.com/api/" + w.apiKey + "/conditions/q/" + city + ".json")
     if err != nil {
         return 0, err
@@ -127,4 +130,21 @@ func (w weatherUnderground) temperature(city string) (float64, error) {
     kelvin := d.Observation.Celsius + 273.15
     log.Printf("weatherUnderground: %s: %.2f", city, kelvin)
     return kelvin, nil
+}
+
+type multiWeatherProvider []weatherProvider
+
+func (w multiWeatherProvider) temperature(city string) (float64, error) {
+	sum := 0.0
+
+	for _, provider := range w {
+		k, err := provider.temperature(city)
+		if err != nil {
+			return 0, err
+		}
+
+		sum += k
+	}
+
+	return sum / float64(len(w)), nil
 }
